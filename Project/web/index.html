@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Word-Level Plagiarism Checker</title>
+<style>
+:root{
+  --bg:#f3f5fb; --card:#ffffff; --ink:#1b2238; --muted:#69728c; --line:#e6e9f3;
+  --brand:#5b5bf0; --brand2:#8b5cf6; --low:#16a34a; --med:#f59e0b; --high:#e11d48;
+  --exact:#ffc2d1; --reword:#ffe08a; --shadow:0 10px 30px rgba(40,50,110,.08);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+.hero{background:radial-gradient(1200px 400px at 10% -10%,#7c7cff55,transparent),linear-gradient(120deg,#25235e,#4b3fbf 55%,#7a4df0);color:#fff;padding:38px 20px 90px}
+.wrap{max-width:1180px;margin:0 auto}
+.hero h1{margin:0;font-size:32px;letter-spacing:-.5px}
+.hero p{margin:8px 0 0;opacity:.85;max-width:740px;line-height:1.5}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.chip{background:#ffffff22;border:1px solid #ffffff33;border-radius:99px;padding:5px 12px;font-size:12.5px}
+main{max-width:1180px;margin:-60px auto 40px;padding:0 16px;display:grid;gap:18px}
+.card{background:var(--card);border-radius:18px;box-shadow:var(--shadow);padding:22px;border:1px solid var(--line)}
+.card h2{margin:0 0 14px;font-size:17px;display:flex;align-items:center;gap:10px}
+.num{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;display:grid;place-items:center;font-size:13px;flex:none}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:860px){.grid2{grid-template-columns:1fr}}
+.box{border:2px dashed #bcc3ea;border-radius:16px;padding:26px 16px;text-align:center;transition:.2s;background:linear-gradient(180deg,#fafaff,#f3f4ff);min-height:190px}
+.box.over{border-color:var(--brand);background:#eceaff}
+.box .big{font-size:36px}
+.box b{display:block;margin:6px 0 2px}
+.muted{color:var(--muted);font-size:13.5px}
+.picked{margin-top:10px;font-weight:600;color:var(--brand);word-break:break-all}
+.list{max-height:84px;overflow:auto;font-size:12.5px;color:var(--muted);line-height:1.6;margin-top:8px;text-align:left}
+.btn{font:inherit;border:0;border-radius:12px;padding:11px 18px;cursor:pointer;font-weight:600;transition:.15s}
+.btn.primary{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;box-shadow:0 8px 18px #5b5bf044}
+.btn.primary:hover:not(:disabled){transform:translateY(-1px)}
+.btn.ghost{background:#eef0fb;color:var(--ink)}
+.btn.small{padding:7px 12px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;justify-content:center}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.err{color:var(--high);font-weight:600;margin-top:10px}
+.hidden{display:none}
+.top{display:grid;grid-template-columns:230px 1fr;gap:22px;align-items:center}
+@media(max-width:760px){.top{grid-template-columns:1fr;justify-items:center}}
+.gauge{position:relative;width:200px;height:200px}
+.gauge svg{transform:rotate(-90deg)}
+.gauge .bg{stroke:#eceefa}
+.gauge .fg{transition:stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1)}
+.gauge .mid{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.gauge .pct{font-size:42px;font-weight:800;letter-spacing:-1px}
+.verdict{display:inline-block;padding:5px 14px;border-radius:99px;color:#fff;font-weight:700;font-size:13px}
+.LOW{background:var(--low)}.MEDIUM{background:var(--med)}.HIGH{background:var(--high)}
+.final h3{margin:10px 0 8px;font-size:21px}
+.final p{margin:6px 0;line-height:1.55}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:18px}
+.tile{background:#f6f7fd;border-radius:14px;padding:14px}
+.tile b{display:block;font-size:21px;margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);text-align:left;padding:8px}
+td{padding:11px 8px;border-top:1px solid var(--line)}
+tr.item{cursor:pointer;transition:.12s}tr.item:hover{background:#f4f5ff}tr.sel{background:#e9e7ff}
+.bar{height:9px;background:#eceefa;border-radius:6px;overflow:hidden;min-width:100px;flex:1}
+.bar i{display:block;height:100%;border-radius:6px;transition:width .9s}
+.pill{padding:2px 10px;border-radius:99px;color:#fff;font-size:11.5px;font-weight:700}
+.right{text-align:right}
+.toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+.legend span{display:inline-block;margin-right:14px;font-size:13px}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:5px}
+.sum{background:#f6f7fd;border-radius:12px;padding:12px 14px;margin-bottom:12px;line-height:1.55;font-size:14.5px}
+.panes{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:860px){.panes{grid-template-columns:1fr}}
+.pane{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
+.pane h4{margin:0;padding:10px 14px;background:linear-gradient(135deg,#f0f1ff,#f7f2ff);font-size:14px;display:flex;justify-content:space-between;gap:8px}
+.pane h4 span{font-weight:500;color:var(--muted);font-size:12.5px}
+.doc{position:relative;white-space:pre-wrap;line-height:1.9;font-size:15px;max-height:430px;overflow:auto;padding:12px 14px;word-wrap:break-word}
+.doc.empty{color:var(--muted)}
+mark.e{background:var(--exact);border-radius:4px;padding:2px 0}
+mark.r{background:var(--reword);border-radius:4px;padding:2px 0}
+.algo{display:grid;grid-template-columns:96px 1fr;gap:12px;padding:11px 0;border-top:1px solid var(--line);align-items:start}
+.algo:first-child{border-top:0}
+.mod{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border-radius:8px;padding:4px 8px;font-size:12px;font-weight:700;text-align:center}
+.algo b{display:block}.algo span{color:var(--muted);font-size:13.5px;line-height:1.5}
+label.sw{font-size:13.5px;color:var(--muted);cursor:pointer}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.tab{font:inherit;border:1px solid var(--line);background:#fff;border-radius:99px;padding:8px 16px;cursor:pointer;font-weight:600;color:var(--muted)}
+.tab.on{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border-color:transparent}
+.item td:first-child{white-space:nowrap}
+.chipbtn{display:inline-block;margin:2px 6px 2px 0;padding:3px 10px;border-radius:99px;background:#eef0fb;font-size:12.5px;cursor:pointer;border:1px solid var(--line)}
+.chipbtn:hover{background:#e0e3ff}
+#matrix td,#matrix th{padding:7px 9px;text-align:center;border:1px solid var(--line);font-size:13px;min-width:46px}
+#matrix td.cell{cursor:pointer;font-weight:600}
+#matrix td.cell:hover{outline:2px solid var(--brand)}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid #fff6;border-top-color:#fff;border-radius:50%;animation:s .7s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes s{to{transform:rotate(360deg)}}
+footer{text-align:center;color:var(--muted);font-size:12.5px;padding-bottom:30px}
+</style>
+</head>
+<body>
+<div class="hero"><div class="wrap">
+  <h1>Word-Level Plagiarism Checker</h1>
+  <p>Select the folder to compare with, submit your file, and see which documents it matches, how much it is copied, and the matching sentences highlighted in both documents.</p>
+</div></div>
+
+<main>
+  <section class="card">
+    <h2><span class="num">1</span> Choose the folder and submit your file</h2>
+    <div class="tabs"><button class="tab on" id="tabOne">Check one file against a folder</button><button class="tab" id="tabCls">Checks the plagiarism</button></div>
+    <div class="grid2">
+      <div class="box" id="folderBox">
+        <div class="big">📁</div>
+        <b>Comparison folder</b>
+        <span class="muted">All .txt and .docx files inside are used</span>
+        <div class="row"><button class="btn ghost" onclick="folderIn.click()">Select folder</button></div>
+        <div class="picked" id="folderInfo"></div>
+        <div class="list" id="folderList"></div>
+      </div>
+      <div class="box" id="fileBox">
+        <div class="big">📄</div>
+        <b>File to check</b>
+        <span class="muted">Drag and drop here, or choose (.txt or .docx)</span>
+        <div class="row"><button class="btn ghost" onclick="fileIn.click()">Submit file</button></div>
+        <div class="picked" id="fileInfo"></div>
+      </div>
+    </div>
+    <input type="file" id="folderIn" webkitdirectory multiple class="hidden">
+    <input type="file" id="fileIn" accept=".txt,.docx" class="hidden">
+    <div class="actions">
+      <button class="btn primary" id="go" disabled>Check plagiarism</button>
+    </div>
+    <div class="err" id="err"></div>
+  </section>
+
+  <section class="card hidden" id="out">
+    <h2><span class="num">2</span> Final result</h2>
+    <div class="top">
+      <div class="gauge">
+        <svg width="200" height="200" viewBox="0 0 200 200">
+          <circle class="bg" cx="100" cy="100" r="86" fill="none" stroke-width="18"/>
+          <circle class="fg" id="arc" cx="100" cy="100" r="86" fill="none" stroke-width="18" stroke-linecap="round" stroke-dasharray="540.35" stroke-dashoffset="540.35"/>
+        </svg>
+        <div class="mid"><div class="pct" id="pct">0%</div><span class="muted">plagiarised</span></div>
+      </div>
+      <div class="final">
+        <span class="verdict" id="verdict"></span>
+        <h3 id="headline"></h3>
+        <p id="detail"></p>
+        <p class="muted" id="notes"></p>
+      </div>
+    </div>
+    <div class="tiles" id="tiles"></div>
+  </section>
+
+  <section class="card hidden" id="tblCard">
+    <h2><span class="num">3</span> Similarity with each document</h2>
+    <div class="toolbar"><span class="muted">Click a document to see where the match is in both files.</span>
+      <label class="sw"><input type="checkbox" id="onlyMatch" checked> show only documents with a match</label></div>
+    <div style="overflow:auto">
+    <table>
+      <thead><tr><th>#</th><th>Document</th><th class="right">Words matched</th><th>Similarity</th><th>Verdict</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+  </section>
+
+  <section class="card hidden" id="view">
+    <h2><span class="num">4</span> Where the match is (both documents)</h2>
+    <div class="toolbar">
+      <div class="legend"><span><i style="background:var(--exact)"></i>exact copy</span><span><i style="background:var(--reword)"></i>re-worded copy</span></div>
+      <button class="btn ghost small" id="allBtn">Show all copied parts of my file</button>
+    </div>
+    <div class="sum" id="sum"></div>
+    <div class="panes">
+      <div class="pane"><h4><b id="lt"></b><span id="ls"></span></h4><div class="doc" id="left"></div></div>
+      <div class="pane"><h4><b id="rt"></b><span id="rs"></span></h4><div class="doc" id="right"></div></div>
+    </div>
+  </section>
+
+  <section class="card hidden" id="cOut">
+    <h2><span class="num">2</span> Class result</h2>
+    <div class="tiles" id="cTiles"></div>
+    <p class="muted" id="cNote" style="line-height:1.6"></p>
+  </section>
+
+  <section class="card hidden" id="cTbl">
+    <h2><span class="num">3</span> How much did each student copy, and from whom?</h2>
+    <p class="muted">Click a student, or a "copied from" tag, to see the matching words in both answers.</p>
+    <div style="overflow:auto">
+    <table>
+      <thead><tr><th>Student</th><th class="right">Words</th><th class="right">Words copied</th><th>Copied %</th><th>Verdict</th><th>Copied from (matches with)</th></tr></thead>
+      <tbody id="cRows"></tbody>
+    </table></div>
+  </section>
+
+  <section class="card hidden" id="cMat">
+    <h2><span class="num">4</span> Who matches whom (%)</h2>
+    <p class="muted">Row = the student whose answer is checked, column = the student it matches. Click a number to see both answers.</p>
+    <div style="overflow:auto;margin-top:8px"><table id="matrix"></table></div>
+  </section>
+
+  <section class="card hidden" id="cView">
+    <h2><span class="num">5</span> Where the match is (both answers)</h2>
+    <div class="toolbar">
+      <div class="legend"><span><i style="background:var(--exact)"></i>exact copy</span><span><i style="background:var(--reword)"></i>re-worded copy</span></div>
+      <button class="btn ghost small" id="cAll">Show all copied parts of this student</button>
+    </div>
+    <div class="sum" id="cSum"></div>
+    <div class="panes">
+      <div class="pane"><h4><b id="clt"></b><span id="cls"></span></h4><div class="doc" id="ldoc"></div></div>
+      <div class="pane"><h4><b id="crt"></b><span id="crs"></span></h4><div class="doc" id="rdoc"></div></div>
+    </div>
+  </section>
+</main>
+<footer>Word-Level Plagiarism Checker for Short Documents</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+let refFiles = [], suspect = null, data = null, sel = 0;
+const ok = n => /\.(txt|docx)$/i.test(n) && !n.startsWith('~$');
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const col = v => v === 'HIGH' ? 'var(--high)' : v === 'MEDIUM' ? 'var(--med)' : 'var(--low)';
+const relName = f => { const p = f.webkitRelativePath; return p && p.includes('/') ? p.split('/').slice(1).join('/') : f.name; };
+
+let mode = 'one';
+const goLabel = () => mode === 'class' ? 'Check the whole class' : 'Check plagiarism';
+function update(){
+  $('go').disabled = mode === 'class' ? refFiles.length < 2 : !(refFiles.length >= 1 && suspect);
+}
+$('folderIn').onchange = e => {
+  const all = Array.from(e.target.files);
+  refFiles = all.filter(f => ok(f.name)).sort((x, y) => relName(x).localeCompare(relName(y), undefined, {numeric:true}));
+  const folder = all.length && all[0].webkitRelativePath ? all[0].webkitRelativePath.split('/')[0] : 'folder';
+  $('folderInfo').textContent = refFiles.length + ' files selected from "' + folder + '"';
+  $('folderList').innerHTML = refFiles.map(f => '&#128196; ' + esc(relName(f))).join('<br>') || 'No .txt or .docx files found in this folder.';
+  update();
+};
+function setSuspect(f){
+  if(!f) return;
+  if(!ok(f.name)){ $('err').textContent = 'Please submit a .txt or .docx file.'; return; }
+  $('err').textContent = ''; suspect = f; $('fileInfo').textContent = f.name; update();
+}
+$('fileIn').onchange = e => setSuspect(e.target.files[0]);
+const fb = $('fileBox');
+fb.ondragover = e => { e.preventDefault(); fb.classList.add('over'); };
+fb.ondragleave = () => fb.classList.remove('over');
+fb.ondrop = e => { e.preventDefault(); fb.classList.remove('over'); setSuspect(e.dataTransfer.files[0]); };
+
+function b64(buf){
+  let s = ''; const u = new Uint8Array(buf);
+  for(let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+async function line(role, name, file){ return role + '|' + name + '|' + b64(await file.arrayBuffer()); }
+function busy(btn, on, label){ btn.disabled = on; btn.innerHTML = on ? '<span class="spin"></span>Checking...' : label; }
+
+async function run(random, btn, label){
+  busy(btn, true, label); $('err').textContent = '';
+  try{
+    const lines = [];
+    for(const f of refFiles) lines.push(await line('r', relName(f), f));
+    if(!random) lines.push(await line('s', suspect.name, suspect));
+    const r = await fetch('/api/check?random=' + (random ? 1 : 0), { method:'POST', body: lines.join('\n') });
+    const d = await r.json();
+    if(d.error){ $('err').textContent = d.error; } else { data = d; render(); }
+  }catch(e){ $('err').textContent = 'Could not reach the server: ' + e.message; }
+  busy(btn, false, label); update();
+}
+$('go').onclick = () => mode === 'class' ? runClass() : run(false, $('go'), goLabel());
+$('onlyMatch').onchange = () => data && table();
+$('allBtn').onclick = () => { sel = -1; table(); compare(); };
+
+function render(){
+  const d = data;
+  ['out','tblCard','view'].forEach(i => $(i).classList.remove('hidden'));
+  const arc = $('arc'), C = 540.35;
+  arc.style.stroke = col(d.overallVerdict); arc.style.strokeDashoffset = C;
+  requestAnimationFrame(() => requestAnimationFrame(() => arc.style.strokeDashoffset = C * (1 - d.overallPercent / 100)));
+  $('pct').textContent = d.overallPercent + '%';
+  const v = $('verdict'); v.textContent = d.overallVerdict + ' PLAGIARISM'; v.className = 'verdict ' + d.overallVerdict;
+  const files = d.results.filter(r => r.matched > 0).length, top = d.results[0];
+  $('headline').textContent = {HIGH:'This document is mostly copied.', MEDIUM:'Some parts of this document are copied.', LOW:'This document looks original.'}[d.overallVerdict];
+  $('detail').innerHTML = d.overallPercent === 0
+    ? '<b>' + esc(d.suspect) + '</b> has no matching text with any of the ' + d.refCount + ' documents in the folder.'
+    : '<b>' + (d.exactWords + d.rewordWords) + ' of ' + d.totalWords + ' words</b> in <b>' + esc(d.suspect) + '</b> match ' + files + ' of the ' + d.refCount +
+      ' documents. The biggest match is with <b>' + esc(top.name) + '</b> (' + top.percent + '% similar).' +
+      (d.random ? ' This file was picked randomly from the folder and compared with all the others.' : '');
+  const notes = [];
+  if(d.selfSkipped) notes.push('The submitted file was also inside the folder, so it was not compared with itself.');
+  if(d.unreadable) notes.push(d.unreadable + ' file(s) could not be read and were skipped.');
+  $('notes').textContent = notes.join(' ');
+  $('tiles').innerHTML = [['Words in your file', d.totalWords], ['Documents compared', d.refCount], ['Words matched', d.exactWords + d.rewordWords],
+    ['Exact copy words', d.exactWords], ['Re-worded words', d.rewordWords], ['Time taken', d.ms + ' ms']]
+    .map(t => '<div class="tile"><span class="muted">' + t[0] + '</span><b>' + t[1] + '</b></div>').join('');
+  sel = 0; table(); compare();
+  $('out').scrollIntoView({behavior:'smooth'});
+}
+
+function table(){
+  const rows = $('rows'); rows.innerHTML = '';
+  data.results.forEach((r, i) => {
+    if($('onlyMatch').checked && r.matched === 0 && i > 0) return;
+    const tr = document.createElement('tr'); tr.className = 'item' + (i === sel ? ' sel' : '');
+    tr.innerHTML = '<td>' + (i + 1) + '</td><td><b>' + esc(r.name) + '</b></td><td class="right">' + r.matched + '</td>' +
+      '<td><div style="display:flex;gap:10px;align-items:center"><div class="bar"><i style="width:' + r.percent + '%;background:' + col(r.verdict) + '"></i></div><b>' + r.percent + '%</b></div></td>' +
+      '<td><span class="pill ' + r.verdict + '">' + r.verdict + '</span></td>';
+    tr.onclick = () => { sel = i; table(); compare(); $('view').scrollIntoView({behavior:'smooth'}); };
+    rows.appendChild(tr);
+  });
+}
+
+function paint(box, text, ranges, titleOf){
+  box.innerHTML = ''; box.classList.remove('empty'); let pos = 0, first = null;
+  for(const [s, e, k, src] of ranges){
+    if(s > pos) box.append(text.slice(pos, s));
+    const m = document.createElement('mark'); m.className = k === 1 ? 'e' : 'r'; m.textContent = text.slice(s, e);
+    if(titleOf) m.title = titleOf(src);
+    box.append(m); pos = e; if(!first) first = m;
+  }
+  if(pos < text.length) box.append(text.slice(pos));
+  if(first) box.scrollTop = Math.max(0, first.offsetTop - box.offsetTop - 30); else box.scrollTop = 0;
+}
+
+function compare(){
+  const d = data, L = $('left'), R = $('right');
+  $('lt').textContent = 'Your file: ' + d.suspect;
+  if(sel < 0){
+    $('ls').textContent = d.exactWords + d.rewordWords + ' of ' + d.totalWords + ' words matched';
+    $('sum').innerHTML = 'Showing every matching part of <b>' + esc(d.suspect) + '</b>. Hover a highlight to see which document it matches.';
+    paint(L, d.text, d.allRanges, s => 'matches ' + d.results[s].name);
+    $('rt').textContent = 'Matching document'; $('rs').textContent = '';
+    R.textContent = 'Click a document in the table to see where the match is inside that document.'; R.classList.add('empty'); R.scrollTop = 0;
+    return;
+  }
+  const r = d.results[sel];
+  $('ls').textContent = r.matched + ' of ' + d.totalWords + ' words';
+  $('rt').textContent = 'Matches with: ' + r.name; $('rs').textContent = r.refWords + ' words';
+  $('sum').innerHTML = '<b>' + esc(d.suspect) + '</b> is <b>' + r.percent + '% similar</b> to <b>' + esc(r.name) + '</b>: ' + r.matched + ' words match.';
+  paint(L, d.text, r.sr, null);
+  if(r.matched > 0) paint(R, r.refText, r.rr, null); else { R.textContent = 'No matching text in this document.'; R.classList.add('empty'); }
+}
+
+
+// ================= WHOLE CLASS MODE =================
+let cd = null, cp = {}, cSel = 0;
+const ALL = ['out','tblCard','view','cOut','cTbl','cMat','cView'];
+function setMode(m){
+  mode = m;
+  $('tabOne').classList.toggle('on', m === 'one'); $('tabCls').classList.toggle('on', m === 'class');
+  $('fileBox').classList.toggle('hidden', m === 'class');
+  $('go').textContent = goLabel(); $('err').textContent = '';
+  ALL.forEach(i => $(i).classList.add('hidden')); update();
+}
+$('tabOne').onclick = () => setMode('one');
+$('tabCls').onclick = () => setMode('class');
+
+const nm = n => { const b = n.replace(/^.*\//, '').replace(/\.[^.]+$/, '').replace(/_/g, ' '); return b.charAt(0).toUpperCase() + b.slice(1); };
+const sh = n => { const m = n.match(/(\d+)/); return m ? 'S' + parseInt(m[1], 10) : nm(n).slice(0, 6); };
+
+async function runClass(){
+  const btn = $('go'), label = goLabel(); busy(btn, true, label); $('err').textContent = '';
+  try{
+    const lines = [];
+    for(const f of refFiles) lines.push(await line('r', relName(f), f));
+    const r = await fetch('/api/class', { method:'POST', body: lines.join('\n') });
+    const d = await r.json();
+    if(d.error) $('err').textContent = d.error; else { cd = d; renderClass(); }
+  }catch(e){ $('err').textContent = 'Could not reach the server: ' + e.message; }
+  busy(btn, false, label); update();
+}
+
+function renderClass(){
+  const d = cd; cp = {}; d.pairs.forEach(p => cp[p.i + '_' + p.j] = p);
+  ['cOut','cTbl','cMat','cView'].forEach(i => $(i).classList.remove('hidden'));
+  let top = 0; d.students.forEach((s, i) => { if(+s.overall > +d.students[top].overall) top = i; });
+  $('cTiles').innerHTML = [['Students checked', d.count], ['Students who copied (20% or more)', d.copied + ' of ' + d.count], ['Mostly copied (50% or more)', d.high],
+      ['Original answers', d.count - d.copied], ['Most copied answer', nm(d.names[top]) + ' (' + d.students[top].overall + '%)'], ['Time taken', d.ms + ' ms']]
+    .map(t => '<div class="tile"><span class="muted">' + t[0] + '</span><b>' + esc(String(t[1])) + '</b></div>').join('');
+  $('cNote').innerHTML = 'Each answer was compared with every other answer (' + (d.count * (d.count - 1)) + ' comparisons). <b>Who copied from whom?</b> The checker shows who <i>matches</i> whom. ' +
+    'When one student copies another, both answers show a high match, so the teacher decides who copied. ' + (d.unreadable ? d.unreadable + ' file(s) could not be read.' : '');
+  cSel = d.students[top].sources.length ? top : 0;
+  classTable(); matrix();
+  const s = d.students[cSel];
+  if(s.sources.length) showPair(cSel, s.sources[0].j); else showAll(cSel);
+  $('cOut').scrollIntoView({behavior:'smooth'});
+}
+
+function classTable(){
+  const d = cd, tb = $('cRows'); tb.innerHTML = '';
+  d.students.forEach((s, i) => {
+    const tr = document.createElement('tr'); tr.className = 'item' + (i === cSel ? ' sel' : '');
+    const chips = s.sources.length ? s.sources.map(x => '<span class="chipbtn" data-j="' + x.j + '">' + esc(nm(d.names[x.j])) + ': ' + x.percent + '%</span>').join('') : '<span class="muted">nobody - original</span>';
+    tr.innerHTML = '<td><b>' + esc(nm(s.name)) + '</b></td><td class="right">' + s.words + '</td><td class="right">' + s.matched + '</td>' +
+      '<td><div style="display:flex;gap:10px;align-items:center"><div class="bar"><i style="width:' + s.overall + '%;background:' + col(s.verdict) + '"></i></div><b>' + s.overall + '%</b></div></td>' +
+      '<td><span class="pill ' + s.verdict + '">' + (s.verdict === 'LOW' ? 'ORIGINAL' : s.verdict === 'MEDIUM' ? 'SOME COPYING' : 'COPIED') + '</span></td><td>' + chips + '</td>';
+    tr.onclick = e => {
+      cSel = i; classTable();
+      const j = e.target.dataset && e.target.dataset.j;
+      if(j !== undefined && j !== '') showPair(i, +j); else if(s.sources.length) showPair(i, s.sources[0].j); else showAll(i);
+      $('cView').scrollIntoView({behavior:'smooth'});
+    };
+    tb.appendChild(tr);
+  });
+}
+
+function matrix(){
+  const d = cd; let h = '<tr><th></th>' + d.names.map(n => '<th title="' + esc(nm(n)) + '">' + esc(sh(n)) + '</th>').join('') + '</tr>';
+  d.matrix.forEach((row, i) => {
+    h += '<tr><th title="' + esc(nm(d.names[i])) + '">' + esc(sh(d.names[i])) + '</th>';
+    row.forEach((p, j) => {
+      if(p < 0) h += '<td style="background:#f1f2f8;color:#b0b6c8">-</td>';
+      else h += '<td class="cell" data-i="' + i + '" data-j="' + j + '" title="' + esc(nm(d.names[i])) + ' matches ' + esc(nm(d.names[j])) + '" style="background:rgba(225,29,72,' + (p / 100 * 0.85) + ');color:' + (p > 55 ? '#fff' : 'inherit') + '">' + (p > 0 ? p : '0') + '</td>';
+    });
+    h += '</tr>';
+  });
+  $('matrix').innerHTML = h;
+  $('matrix').onclick = e => { const c = e.target.closest('td.cell'); if(c){ cSel = +c.dataset.i; classTable(); showPair(+c.dataset.i, +c.dataset.j); $('cView').scrollIntoView({behavior:'smooth'}); } };
+}
+
+function showPair(i, j){
+  const d = cd, p = cp[i + '_' + j];
+  $('clt').textContent = nm(d.names[i]) + "'s answer"; $('crt').textContent = nm(d.names[j]) + "'s answer";
+  $('cls').textContent = d.students[i].words + ' words'; $('crs').textContent = d.students[j].words + ' words';
+  if(!p){
+    $('cSum').innerHTML = 'No matching text between <b>' + esc(nm(d.names[i])) + '</b> and <b>' + esc(nm(d.names[j])) + '</b>.';
+    paint($('ldoc'), d.texts[i], [], null); paint($('rdoc'), d.texts[j], [], null); return;
+  }
+  const back = d.matrix[j][i];
+  $('cSum').innerHTML = '<b>' + esc(nm(d.names[i])) + '</b> copied <b>' + p.percent + '%</b> of its answer. It matches <b>' + esc(nm(d.names[j])) + '</b> in ' + p.matched + ' of ' + d.students[i].words +
+    ' words. ' +
+    'In the other direction, ' + esc(nm(d.names[j])) + ' matches ' + back + '% of its words with ' + esc(nm(d.names[i])) + '.';
+  paint($('ldoc'), d.texts[i], p.sr, null); paint($('rdoc'), d.texts[j], p.rr, null);
+  $('cAll').onclick = () => showAll(i);
+}
+
+function showAll(i){
+  const d = cd, s = d.students[i];
+  $('clt').textContent = nm(d.names[i]) + "'s answer"; $('cls').textContent = s.matched + ' of ' + s.words + ' words copied';
+  $('crt').textContent = 'Matching answers'; $('crs').textContent = '';
+  $('cSum').innerHTML = s.matched ? 'All copied parts of <b>' + esc(nm(d.names[i])) + '</b>. Hover a highlight to see whose answer it matches.' : '<b>' + esc(nm(d.names[i])) + '</b> has no copied text: the answer looks original.';
+  paint($('ldoc'), d.texts[i], s.ar, x => 'matches ' + nm(d.names[x]));
+  const R = $('rdoc'); R.textContent = 'Click a "copied from" tag in the table, or a number in the matrix, to see the other answer.'; R.classList.add('empty'); R.scrollTop = 0;
+  $('cAll').onclick = () => showAll(i);
+}
+
+</script>
+</body>
+</html>
