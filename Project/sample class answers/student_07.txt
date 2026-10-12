@@ -1,0 +1,1 @@
+A hash table stores key and value pairs in an array. The index of the array is found by applying a hash function to the key and taking the remainder after dividing by the size of the array. When two keys give the same hash value a collision happens and we solve it with chaining or open addressing. In my opinion chaining is easier to write in Java than open addressing.

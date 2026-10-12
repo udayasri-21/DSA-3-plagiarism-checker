@@ -1,0 +1,1 @@
+Searching in a sorted array uses binary search but hashing can be even faster. We do not compare keys with the middle element at all. We only compute one number from the key and read the array at that position. For example the key 25 with a table of size 10 goes to position 5. Hashing is therefore very useful when we need quick answers for a large amount of data.

@@ -1,0 +1,1 @@
+Dictionaries in Python are built on hash tables. When we write student of ravi Python hashes the string and finds the memory location in a single step. That is why a dictionary lookup does not become slow even when it holds a million entries. Lists on the other hand must be scanned from the start, which grows slower with every new item.
