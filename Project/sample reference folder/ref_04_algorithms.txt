@@ -1,0 +1,1 @@
+An algorithm is a step by step method to solve a problem. We measure an algorithm by the time and the memory it needs when the input becomes large. Dynamic programming stores the answers of small problems so that they are not solved again. Network flow helps to match one set of items with another set in the best possible way.

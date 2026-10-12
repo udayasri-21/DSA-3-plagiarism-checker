@@ -1,0 +1,1 @@
+Hashing converts a word or a phrase into a number so that searching becomes very fast. A good hash function spreads the keys evenly over the table. When two keys land in the same slot we call it a collision and we store them in a linked chain. The Rabin-Karp algorithm uses a rolling hash to compare many phrases quickly.
